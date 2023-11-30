@@ -5,6 +5,16 @@ from glob import glob
 import polars as pl
 
 
+def get_all(pathname: str):
+    return (
+        pl.concat([get_df(x) for x in glob(pathname)])
+        .drop('index')
+        .unique()
+        .sort('timestamp')
+        .pipe(add_index)
+        .sort('index', descending=True)
+    )
+
 def get_df(pathname: str):
     return (
         pl.read_csv(pathname, separator='|', dtypes={
@@ -15,7 +25,6 @@ def get_df(pathname: str):
             'afkDuration': pl.UInt8,
         })
         .pipe(add_index)
-        .pipe(dropsame)
         .drop('tags')
         .with_columns(pl.from_epoch('timestamp', time_unit='ms'))
         .sort('timestamp')
