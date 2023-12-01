@@ -5,15 +5,31 @@ from glob import glob
 import polars as pl
 
 
+def append_to_results(src='./results.csv', pathname='/home/chrlz/Downloads/results*.csv'):
+    return pl.concat([
+        get_all(pathname).pipe(format_as_monkey),
+        get_df(src).pipe(format_as_monkey)
+    ]).unique().pipe(format_as_monkey)
+
+
 def get_all(pathname: str):
     return (
         pl.concat([get_df(x) for x in glob(pathname)])
         .drop('index')
         .unique()
-        .sort('timestamp')
+        .sort('timestamp', descending=True)
         .pipe(add_index)
         .sort('index', descending=True)
     )
+
+
+def format_as_monkey(df: pl.DataFrame):
+    return (
+        df.with_columns(pl.col('timestamp') .dt.epoch(time_unit='ms'))
+        .sort('timestamp', descending=True)
+        .drop('index')
+    )
+
 
 def get_df(pathname: str):
     return (
@@ -25,7 +41,6 @@ def get_df(pathname: str):
             'afkDuration': pl.UInt8,
         })
         .pipe(add_index)
-        .drop('tags')
         .with_columns(pl.from_epoch('timestamp', time_unit='ms'))
         .sort('timestamp')
     )
