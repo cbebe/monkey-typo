@@ -5,13 +5,21 @@ from glob import glob
 import polars as pl
 
 
-def append_to_results(src='./results.csv', pathname='/home/chrlz/Downloads/results*.csv'):
+def append_to_results(src='./results.tsv', pathname='/home/chrlz/Downloads/results*.csv'):
     return (
         pl.concat([
             get_all(pathname).pipe(format_as_monkey),
-            get_df(src).pipe(format_as_monkey)
+            get_df(src, separator='\t').pipe(format_as_monkey)
         ])
         .unique()
+        .with_columns(
+            pl.when(pl.col('quoteLength') == -1)
+            .then(pl.lit(None))
+            .otherwise(pl.col('quoteLength'))
+            .name.keep(),
+            ((pl.col('timestamp') / 1000).round().cast(pl.Int64) * 1000)
+        ).group_by('_id')
+        .max()
         .pipe(format_as_monkey)
         .sort('timestamp')
     )
@@ -36,14 +44,15 @@ def format_as_monkey(df: pl.DataFrame):
     )
 
 
-def get_df(pathname: str):
+def get_df(pathname: str, separator='|'):
     return (
-        pl.read_csv(pathname, separator='|', dtypes={
+        pl.read_csv(pathname, separator=separator, dtypes={
             'mode': pl.Categorical,
             'mode2': pl.Categorical,
             'isPb': pl.Boolean,
             'restartCount': pl.UInt8,
             'afkDuration': pl.UInt8,
+            'quoteLength': pl.Int64,
         })
         .pipe(add_index)
         .with_columns(pl.from_epoch('timestamp', time_unit='ms'))
@@ -105,7 +114,7 @@ def to_struct(col: str, high='high', low='low', split=12):
             .alias(name)
         )
 
-    return pl.struct([split_expr(0, high), split_expr(split, low)])
+    return pl.struct([split_expr(high, 0), split_expr(low, split)])
 
 
 def to_int(col: str, high='high', low='low'):
