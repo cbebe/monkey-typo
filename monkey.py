@@ -30,7 +30,7 @@ def get_all(pathname: str):
 
 def format_as_monkey(df: pl.DataFrame):
     return (
-        df.with_columns(pl.col('timestamp') .dt.epoch(time_unit='ms'))
+        df.with_columns(pl.col('timestamp').dt.epoch(time_unit='ms'))
         .sort('timestamp', descending=True)
         .drop('index')
     )
@@ -52,6 +52,10 @@ def get_df(pathname: str):
 
 
 def dropsame_lazy(df: pl.LazyFrame):
+    """
+    Drops all the columns that only have one unique value, but with the Lazy API.
+    Except it actually needs to collect to find the unique values.
+    """
     # LMFAO LazyAPI
     same_values = (
         df.select((pl.all().unique().len() == 1).all())
@@ -92,12 +96,16 @@ def add_index(df: pl.DataFrame, col: str = 'index'):
 
 
 def to_struct(col: str, high='high', low='low', split=12):
-    return pl.struct([
-        pl.col(col).str.slice(0, split).str.to_integer(
-            base=16).cast(pl.UInt64).alias(high),
-        pl.col(col).str.slice(split, split).str.to_integer(
-            base=16).cast(pl.UInt64).alias(low),
-    ])
+    def split_expr(name: str, offset: int):
+        return (
+            pl.col(col)
+            .str.slice(offset, split)
+            .str.to_integer(base=16)
+            .cast(pl.UInt64)
+            .alias(name)
+        )
+
+    return pl.struct([split_expr(0, high), split_expr(split, low)])
 
 
 def to_int(col: str, high='high', low='low'):
