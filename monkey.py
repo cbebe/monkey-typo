@@ -6,10 +6,15 @@ import polars as pl
 
 
 def append_to_results(src='./results.csv', pathname='/home/chrlz/Downloads/results*.csv'):
-    return pl.concat([
-        get_all(pathname).pipe(format_as_monkey),
-        get_df(src).pipe(format_as_monkey)
-    ]).unique().pipe(format_as_monkey)
+    return (
+        pl.concat([
+            get_all(pathname).pipe(format_as_monkey),
+            get_df(src).pipe(format_as_monkey)
+        ])
+        .unique()
+        .pipe(format_as_monkey)
+        .sort('timestamp')
+    )
 
 
 def get_all(pathname: str):
