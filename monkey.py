@@ -4,12 +4,27 @@ from glob import glob
 
 import polars as pl
 
+DTYPES = {
+    'mode': pl.Categorical,
+    'mode2': pl.Categorical,
+    'isPb': pl.Utf8,
+    'restartCount': pl.UInt8,
+    'afkDuration': pl.UInt8,
+    'quoteLength': pl.Int64,
+}
 
-def append_to_results(src='./results.tsv', pathname='/home/chrlz/Downloads/results*.csv'):
+
+def cast_dtypes(df: pl.DataFrame):
+    return df.with_columns([pl.col(x).cast(t) for x, t in DTYPES.items()])
+
+
+def append_to_results(src='./results.parquet', pathname='/home/chrlz/Downloads/results*.csv'):
     return (
         pl.concat([
             get_all(pathname).pipe(format_as_monkey),
-            get_df(src, separator='\t').pipe(format_as_monkey)
+            (
+                pl.read_parquet(src).pipe(cast_dtypes)
+                .pipe(format_df).pipe(format_as_monkey)),
         ])
         .unique()
         .with_columns(
@@ -44,20 +59,16 @@ def format_as_monkey(df: pl.DataFrame):
     )
 
 
-def get_df(pathname: str, separator='|'):
+def format_df(df: pl.DataFrame):
     return (
-        pl.read_csv(pathname, separator=separator, dtypes={
-            'mode': pl.Categorical,
-            'mode2': pl.Categorical,
-            'isPb': pl.Boolean,
-            'restartCount': pl.UInt8,
-            'afkDuration': pl.UInt8,
-            'quoteLength': pl.Int64,
-        })
-        .pipe(add_index)
+        df.pipe(add_index)
         .with_columns(pl.from_epoch('timestamp', time_unit='ms'))
         .sort('timestamp')
     )
+
+
+def get_df(pathname: str, separator='|'):
+    return pl.read_csv(pathname, separator=separator, dtypes=DTYPES).pipe(format_df)
 
 
 def dropsame_lazy(df: pl.LazyFrame):
