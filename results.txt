@@ -1,4 +1,4 @@
-Total rows: 1589
-Mean (recent 1000): 135.54192
-PB (recent 1000): 171.87 (160)
-Worst (recent 1000): 81.55 (892)
+Total rows: 1610
+Mean (recent 1000): 136.15448
+PB (recent 1000): 172.83 (0)
+Worst (recent 1000): 81.55 (913)
