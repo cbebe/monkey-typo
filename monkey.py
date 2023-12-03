@@ -1,4 +1,5 @@
 import os
+import io
 import re
 from glob import glob
 
@@ -14,11 +15,34 @@ DTYPES = {
 }
 
 
+def get_recent(df: pl.DataFrame):
+    return (
+        df.tail(1000-len(df))
+        .sort('timestamp', descending=True)
+        .pipe(format_df)
+    )
+
+
+def write_results(df: pl.DataFrame, f: io.TextIOWrapper):
+    recent = df.pipe(get_recent)
+    mean = recent['wpm'].mean()
+    worst = recent.sort('wpm').select('wpm', 'index')[0].to_dicts()[0]
+    best = recent.sort('wpm', descending=True).select(
+        'wpm', 'index')[0].to_dicts()[0]
+    f.write(f'Total rows: {len(df)}\n')
+    f.write(f'Mean (recent 1000): {mean}\n')
+    f.write(f'PB (recent 1000): {best["wpm"]} ({best["index"]})\n')
+    f.write(f'Worst (recent 1000): {worst["wpm"]} ({worst["index"]})\n')
+
+
 def cast_dtypes(df: pl.DataFrame):
     return df.with_columns([pl.col(x).cast(t) for x, t in DTYPES.items()])
 
 
-def append_to_results(src='./results.parquet', pathname='/home/chrlz/Downloads/results*.csv'):
+def append_to_results(
+    src='./results.parquet',
+    pathname='/home/chrlz/Downloads/results*.csv'
+):
     return (
         pl.concat([
             get_all(pathname).pipe(format_as_monkey),
@@ -68,19 +92,23 @@ def format_df(df: pl.DataFrame):
 
 
 def get_df(pathname: str, separator='|'):
-    return pl.read_csv(pathname, separator=separator, dtypes=DTYPES).pipe(format_df)
+    return (
+        pl.read_csv(pathname, separator=separator, dtypes=DTYPES)
+        .pipe(format_df)
+    )
 
 
 def dropsame_lazy(df: pl.LazyFrame):
     """
-    Drops all the columns that only have one unique value, but with the Lazy API.
+    Drops all the columns that only have one unique value,
+    but with the Lazy API.
     Except it actually needs to collect to find the unique values.
     """
     # LMFAO LazyAPI
     same_values = (
         df.select((pl.all().unique().len() == 1).all())
         .melt()
-        .filter(pl.col('value') == False)
+        .filter(pl.col('value') is False)
         .select('variable')
         .collect()
         .to_series()

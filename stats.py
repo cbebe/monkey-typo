@@ -6,21 +6,21 @@ stats.py
 Prints MonkeyType stats.
 """
 
+import sys
+
 import polars as pl
 
-from monkey import find_latest_csv, get_df
+import monkey as mk
 
 if __name__ == "__main__":
     max_len = 15
     pathname = '/home/chrlz/Downloads/results*.csv'
     # pathname = 'C:/Users/maple/Downloads/results*.csv'
-    csv = find_latest_csv(pathname)
-    df = get_df(csv)
+    full_df = mk.append_to_results()
+    df = full_df.pipe(mk.get_recent)
+    csv = mk.find_latest_csv(pathname)
     mean = df['wpm'].mean()
     restarts = df['restartCount'].sum()/len(df)
-    print(csv)
-    print(f'Mean: {mean}')
-    print(f'Restarts: {restarts}')
     worst = (
         df.sort('wpm')
         .head(max_len)
@@ -39,6 +39,12 @@ if __name__ == "__main__":
         )
         .select(wpm_e='wpm', index_e='index')
     )
-    print('Worst:\t\tEarliest:')
-    print(pl.concat([worst, earliest],
-          how='horizontal').write_csv(separator='\t'))
+    with sys.stdout as f:
+        f.write(csv + '\n')
+        f.write(f'Restarts: {restarts}\n')
+        full_df.pipe(mk.write_results, f)
+        f.write('Worst:\t\tEarliest:\n')
+        f.write(
+            pl.concat([worst, earliest], how='horizontal')
+            .write_csv(separator='\t') + '\n'
+        )
