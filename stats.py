@@ -16,7 +16,7 @@ if __name__ == "__main__":
     max_len = 15
     pathname = '/home/chrlz/Downloads/results*.csv'
     # pathname = 'C:/Users/maple/Downloads/results*.csv'
-    full_df = mk.append_to_results()
+    full_df = mk.append_to_results(pathname=pathname)
     df = full_df.pipe(mk.get_recent)
     csv = mk.find_latest_csv(pathname)
     mean = df['wpm'].mean()
