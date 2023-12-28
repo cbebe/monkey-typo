@@ -14,7 +14,7 @@ import monkey as mk
 
 if __name__ == "__main__":
     max_len = 15
-    pathname = '/home/chrlz/Downloads/results*.csv'
+    pathname = '/home/chrlz/dox/dl/results*.csv'
     # pathname = 'C:/Users/maple/Downloads/results*.csv'
     full_df = mk.append_to_results(pathname=pathname)
     df = full_df.pipe(mk.get_recent)

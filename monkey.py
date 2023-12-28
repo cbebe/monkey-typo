@@ -41,7 +41,7 @@ def cast_dtypes(df: pl.DataFrame):
 
 def append_to_results(
     src='./results.parquet',
-    pathname='/home/chrlz/Downloads/results*.csv'
+    pathname='/home/chrlz/dox/dl/results*.csv'
 ):
     return (
         pl.concat([
