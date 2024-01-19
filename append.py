@@ -9,7 +9,7 @@ Write the latest results to results.parquet
 from monkey import append_to_results, format_df, write_results
 
 if __name__ == "__main__":
-    pathname = '/home/chrlz/Downloads/results*.csv'
+    pathname = '/home/chrlz/dox/dl/results*.csv'
     # pathname = 'C:/Users/maple/Downloads/results*.csv'
     df = append_to_results(pathname=pathname)
     recent = (
